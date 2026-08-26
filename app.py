@@ -1,339 +1,130 @@
-from flask import Flask, request, render_template, redirect, session, flash
-from banking_logic import deposit, withdraw, transfer
-from db import get_connection
-import bcrypt
+"""
+app.py — NexusBank Application Factory
+"""
+import os
+from flask import Flask, render_template, jsonify
+from config import config
+from extensions import db, login_manager, bcrypt, csrf, limiter, mail, migrate
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+import sqlite3
 
-app = Flask(__name__)
-app.secret_key = "supersecretkey"
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.close()
 
+def create_app(config_name=None):
+    if config_name is None:
+        config_name = os.environ.get('FLASK_ENV', 'development')
+        if config_name == 'development':
+            config_name = 'development'
 
-# 🔹 HOME ROUTE
-@app.route('/')
-def home():
-    if 'user_id' in session:
-        return redirect('/dashboard')
-    else:
-        return redirect('/login')
+    app = Flask(__name__)
+    app.config.from_object(config[config_name])
+    config[config_name].init_app(app)
 
+    # ── Initialize Extensions ─────────────────────────
+    db.init_app(app)
+    migrate.init_app(app, db)
+    login_manager.init_app(app)
+    bcrypt.init_app(app)
+    csrf.init_app(app)
+    limiter.init_app(app)
+    mail.init_app(app)
 
-# 🔹 REGISTER
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        name = request.form['name']
-        email = request.form['email']
-        password = request.form['password']
-        Mpin = request.form['Mpin']
-        
-        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-        Mpin_hashed = bcrypt.hashpw(Mpin.encode('utf-8'), bcrypt.gensalt())
-        
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        # insert user
-        cursor.execute(
-            "INSERT INTO users (name, email, password, mpin) VALUES (%s, %s, %s, %s)",
-            (name, email, hashed,Mpin_hashed)
+    # ── Import models so Flask-Migrate finds them ─────
+    with app.app_context():
+        from models import (  # noqa: F401
+            User, Account, Transaction, LedgerEntry,
+            Beneficiary, Card, Biller, Bill,
+            ScheduledPayment, Notification, AuditLog,
         )
-        
-        user_id = cursor.lastrowid   # ✅ get new user ID
-        
-        # 🔥 CREATE ACCOUNT AUTOMATICALLY
-        cursor.execute(
-            "INSERT INTO accounts (user_id, balance, account_type) VALUES (%s, %s, %s)",
-            (user_id, 0, 'Savings')
-        )
-        
-        conn.commit()
-        conn.close()
-        
-        return redirect('/login')
-    
-    return render_template('register.html')
 
-# 🔹 LOGIN
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT user_id, password FROM users WHERE email=%s", (email,))
-        user = cursor.fetchone()
-        
-        if user:
-            user_id, stored_hash = user
-            
-            if isinstance(stored_hash, str):
-                stored_hash = stored_hash.encode('utf-8')
-            
-            if bcrypt.checkpw(password.encode('utf-8'), stored_hash):
-                session['user_id'] = user_id
-                return redirect('/dashboard')
-            else:
-                return "Invalid Password"
-        else:
-            return "User not found"
-    
-    return render_template('login.html')
-
-
-# 🔹 DASHBOARD
-@app.route('/dashboard')
-def dashboard():
-    if 'user_id' not in session:
-        return redirect('/login')
-    
-    user_id = session['user_id']
-    
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    cursor.execute("SELECT * FROM accounts WHERE user_id = %s", (user_id,))
-    account = cursor.fetchone()
-    
-    conn.close()
-
-    return render_template('dashboard.html', account=account)
-
-# 🔹 BALANCE CHECK
-@app.route('/balance', methods=['GET', 'POST'])
-def balance_page():
-    if 'user_id' not in session:
-        return redirect('/login')
-
-    user_id = session['user_id']
-    balance_to_show = None
-    
-    if request.method == 'POST':
-        mpin = request.form.get('Mpin', '')
-        
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        cursor.execute("SELECT mpin FROM users WHERE user_id = %s", (user_id,))
-        user_data = cursor.fetchone()
-        
-        if user_data and user_data['mpin']:
-            stored_hash = user_data['mpin']
-            if isinstance(stored_hash, str):
-                stored_hash = stored_hash.encode('utf-8')
-            
-            if bcrypt.checkpw(mpin.encode('utf-8'), stored_hash):
-                cursor.execute("SELECT balance FROM accounts WHERE user_id = %s", (user_id,))
-                account = cursor.fetchone()
-                if account:
-                    balance_to_show = account['balance']
+    # ── Zero-Config Auto-Database Setup ───────────────
+    with app.app_context():
+        db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+        if db_uri.startswith('sqlite:///'):
+            db_filename = db_uri.split('sqlite:///')[1]
+            if db_filename != ':memory:':
+                if not os.path.isabs(db_filename):
+                    db_path = os.path.join(app.instance_path, db_filename)
                 else:
-                    flash("No account found", "danger")
-            else:
-                flash("Invalid MPIN", "danger")
-        else:
-            flash("User not found or MPIN not set", "danger")
-            
-        conn.close()
-
-    return render_template('balance.html', balance=balance_to_show)
-
-# 🔹 LOGOUT
-@app.route('/logout')
-def logout():
-    session.pop('user_id', None)
-    return redirect('/login')
-
-
-# 🔹 DEPOSIT
-@app.route('/deposit', methods=['GET', 'POST'])
-def deposit_page():
-    if 'user_id' not in session:
-        return redirect('/login')
-
-    user_id = session['user_id']
-    
-    conn = get_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT account_id FROM accounts WHERE user_id = %s", (user_id,))
-    account = cursor.fetchone()
-    
-    if not account:
-        flash("No account found", "danger")
-        return redirect('/dashboard')
-
-    account_id = account[0]
-
-    if request.method == 'POST':
-        amount = float(request.form['amount'])
-
-        if amount <= 0:
-            flash("Amount must be greater than 0", "danger")
-        else:
-            mpin = request.form.get('Mpin', '')
-            cursor.execute("SELECT mpin FROM users WHERE user_id = %s", (user_id,))
-            user_data = cursor.fetchone()
-            
-            if user_data and user_data[0]:
-                stored_hash = user_data[0]
-                if isinstance(stored_hash, str):
-                    stored_hash = stored_hash.encode('utf-8')
+                    db_path = db_filename
                 
-                if bcrypt.checkpw(mpin.encode('utf-8'), stored_hash):
-                    deposit(account_id, amount)
-                    flash("Deposit Successful", "success")
-                else:
-                    flash("Invalid MPIN", "danger")
-            else:
-                flash("User not found or MPIN not set", "danger")
-        
-        return redirect('/dashboard')
-    
-    return render_template('deposit.html')
+                # Check if the database file exists on disk
+                if not os.path.exists(db_path):
+                    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+                    print(f"Database not found. Automatically creating SQLite database at {db_path}...")
+                    db.create_all()
+                    print("Seeding default database values...")
+                    from seed import run_seed
+                    run_seed(app)
 
+    # ── Register Blueprints ───────────────────────────
+    from routes.auth import auth_bp
+    from routes.dashboard import dashboard_bp
+    from routes.accounts import accounts_bp
+    from routes.transactions import transactions_bp
+    from routes.transfers import transfers_bp
+    from routes.beneficiaries import beneficiaries_bp
+    from routes.payments import payments_bp
+    from routes.cards import cards_bp
+    from routes.analytics import analytics_bp
+    from routes.notifications import notifications_bp
+    from routes.profile import profile_bp
+    from routes.api.notifications_api import notifications_api_bp
 
-# 🔹 WITHDRAW (FIXED)
-@app.route('/withdraw', methods=['GET', 'POST'])
-def withdraw_page():
-    if 'user_id' not in session:
-        return redirect('/login')
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(accounts_bp)
+    app.register_blueprint(transactions_bp)
+    app.register_blueprint(transfers_bp)
+    app.register_blueprint(beneficiaries_bp)
+    app.register_blueprint(payments_bp)
+    app.register_blueprint(cards_bp)
+    app.register_blueprint(analytics_bp)
+    app.register_blueprint(notifications_bp)
+    app.register_blueprint(profile_bp)
+    app.register_blueprint(notifications_api_bp)
 
-    user_id = session['user_id']
-    
-    conn = get_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT account_id FROM accounts WHERE user_id = %s", (user_id,))
-    account = cursor.fetchone()
+    # ── Register CLI Commands ─────────────────────────
+    from seed import register_commands
+    register_commands(app)
 
-    if not account:
-        flash("No account found", "danger")
-        return redirect('/dashboard')
+    # ── Error Handlers ────────────────────────────────
+    @app.errorhandler(404)
+    def not_found(e):
+        return render_template('errors/404.html'), 404
 
-    account_id = account[0]
+    @app.errorhandler(403)
+    def forbidden(e):
+        return render_template('errors/403.html'), 403
 
-    if request.method == 'POST':
-        amount = float(request.form['amount'])
+    @app.errorhandler(500)
+    def server_error(e):
+        return render_template('errors/500.html'), 500
 
-        if amount <= 0:
-            flash("Invalid amount", "danger")
-        else:
-            mpin = request.form.get('Mpin', '')
-            cursor.execute("SELECT mpin FROM users WHERE user_id = %s", (user_id,))
-            user_data = cursor.fetchone()
-            
-            if user_data and user_data[0]:
-                stored_hash = user_data[0]
-                if isinstance(stored_hash, str):
-                    stored_hash = stored_hash.encode('utf-8')
-                
-                if bcrypt.checkpw(mpin.encode('utf-8'), stored_hash):
-                    withdraw(account_id, amount)
-                    flash("Withdraw Successful", "success")
-                else:
-                    flash("Invalid MPIN", "danger")
-            else:
-                flash("User not found or MPIN not set", "danger")
-            
-        
-        return redirect('/dashboard')
+    # ── Template Globals ─────────────────────────────
+    @app.context_processor
+    def inject_globals():
+        return {
+            'app_name': app.config.get('APP_NAME', 'NexusBank'),
+            'currency': app.config.get('APP_CURRENCY', '₹'),
+            'demo_mode': app.config.get('DEMO_MODE', True),
+        }
 
-    return render_template('withdraw.html')
+    # ── Root redirect ─────────────────────────────────
+    @app.route('/')
+    def index():
+        from flask import redirect, url_for
+        from flask_login import current_user
+        if current_user.is_authenticated:
+            return redirect(url_for('dashboard.index'))
+        return redirect(url_for('auth.login'))
 
-
-# 🔹 TRANSFER (FIXED)
-@app.route('/transfer', methods=['GET', 'POST'])
-def transfer_page():
-    if 'user_id' not in session:
-        return redirect('/login')
-
-    user_id = session['user_id']
-    
-    conn = get_connection()
-    cursor = conn.cursor()
-    
-    # Fetch the sender's account ID
-    cursor.execute("SELECT account_id FROM accounts WHERE user_id = %s", (user_id,))
-    account_row = cursor.fetchone()
-
-    if not account_row:
-        flash("No account found", "danger")
-        return redirect('/dashboard')
-
-    # account_row is a tuple like (101,), so we grab the first element
-    from_account_id = account_row[0]
-
-    if request.method == 'POST':
-        try:
-            to_account_id = int(request.form.get('to_acc'))
-            amount = float(request.form.get('amount', 0))
-            mpin = request.form.get('Mpin', '')
-
-            if amount <= 0:
-                flash("Amount must be greater than zero", "danger")
-                return redirect('/transfer')
-
-            # Verify MPIN
-            cursor.execute("SELECT mpin FROM users WHERE user_id = %s", (user_id,))
-            user_data = cursor.fetchone()
-            
-            if user_data and user_data[0]:
-                stored_hash = user_data[0]
-                if isinstance(stored_hash, str):
-                    stored_hash = stored_hash.encode('utf-8')
-                
-                if bcrypt.checkpw(mpin.encode('utf-8'), stored_hash):
-                    # CALL TRANSFER: Pass from, to, and amount
-                    # Ensure your transfer() function accepts these 3 arguments
-                    transfer(from_account_id, to_account_id, amount)
-                    flash("Transfer Successful", "success")
-                    return redirect('/dashboard')
-                else:
-                    flash("Invalid MPIN", "danger")
-            else:
-                flash("User not found or MPIN not set", "danger")
-                
-        except ValueError:
-            flash("Invalid input. Please enter numbers for account and amount.", "danger")
-        
-        return redirect('/transfer')
-
-    return render_template('transfer.html')
-
-# Transactions
-@app.route('/transactions')
-def transactions_page():
-    if 'user_id' not in session:
-        return redirect('/login')
-
-    user_id = session['user_id']
-    
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # get user's account
-    cursor.execute("SELECT account_id FROM accounts WHERE user_id = %s", (user_id,))
-    account = cursor.fetchone()
-    
-    if not account:
-        return "No account found"
-    
-    account_id = account['account_id']
-    
-    # get transactions
-    cursor.execute(
-        "SELECT * FROM transactions WHERE account_id = %s ORDER BY date DESC",
-        (account_id,)
-    )
-    transactions = cursor.fetchall()
-    
-    conn.close()
-
-    return render_template('transactions.html', transactions=transactions)
-
-
-# 🔹 RUN APP
-if __name__ == '__main__':
-    app.run(debug=True)
+    return app

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% set no_sidebar = true %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold mt-2 text-primary">Join NexusBank</h2>
+            <p class="text-muted">Create your digital banking account</p>
+        </div>
+
+        <div class="card shadow border-0 rounded-4">
+            <div class="card-body p-4 p-md-5">
+                <form method="POST" action="{{ url_for('auth.register') }}" class="needs-validation" novalidate>
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" name="phone" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" name="password" id="reg-pwd" class="form-control" required>
+                            <div class="progress mt-2" style="height: 5px;">
+                                <div class="progress-bar bg-danger" id="pwd-strength" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Confirm Password</label>
+                            <input type="password" name="confirm_password" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Set MPIN (6 digits)</label>
+                            <input type="password" name="mpin" class="form-control text-center letter-spacing-2" maxlength="6" pattern="\d{6}" required>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label">Confirm MPIN</label>
+                            <input type="password" name="confirm_mpin" class="form-control text-center letter-spacing-2" maxlength="6" pattern="\d{6}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4 form-check">
+                        <input type="checkbox" class="form-check-input" id="terms" required>
+                        <label class="form-check-label small" for="terms">I agree to the Terms and Conditions</label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-gradient w-100 py-2 rounded-3 fw-medium mb-3">Register</button>
+                    
+                    <div class="text-center small">
+                        Already have an account? <a href="{{ url_for('auth.login') }}" class="text-decoration-none text-secondary fw-medium">Sign In</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('reg-pwd').addEventListener('input', function(e) {
+        const val = e.target.value;
+        const bar = document.getElementById('pwd-strength');
+        let strength = 0;
+        if(val.length > 5) strength += 33;
+        if(val.length > 8) strength += 33;
+        if(/[A-Z]/.test(val) && /[0-9]/.test(val)) strength += 34;
+        
+        bar.style.width = strength + '%';
+        if(strength < 50) { bar.className = 'progress-bar bg-danger'; }
+        else if(strength < 80) { bar.className = 'progress-bar bg-warning'; }
+        else { bar.className = 'progress-bar bg-success'; }
+    });
+</script>
+{% endblock %}

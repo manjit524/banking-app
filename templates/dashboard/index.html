@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% import "components/macros.html" as m %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h3 class="fw-bold mb-0">Dashboard</h3>
+        <p class="text-muted mb-0">Overview of your finances</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <a href="{{ url_for('transfers.transfer') }}" class="btn btn-gradient rounded-pill px-4"><i class="fa-solid fa-paper-plane me-2"></i>Send Money</a>
+    </div>
+</div>
+
+{% if is_demo %}
+<div class="alert alert-warning bg-warning bg-opacity-10 border-warning text-dark d-flex align-items-center mb-4 rounded-3">
+    <i class="fa-solid fa-circle-info fs-4 me-3 text-warning"></i>
+    <div>
+        <strong>DEMO MODE ACTIVE:</strong> All transactions and balances are simulated. No real money is involved.
+    </div>
+</div>
+{% endif %}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-card-gradient text-white border-0 rounded-4 shadow-sm">
+            <div class="card-body p-4 p-md-5 position-relative overflow-hidden">
+                <i class="fa-solid fa-wallet position-absolute opacity-10" style="font-size: 10rem; right: -20px; top: -20px;"></i>
+                <h5 class="fw-light opacity-75 mb-1">Total Available Balance</h5>
+                <h1 class="display-4 fw-bold mb-0" id="total-balance-display">₹{{ "{:,.2f}".format(total_balance|default(125000.50)) }}</h1>
+                <div class="mt-4">
+                    <span class="badge bg-white text-success rounded-pill px-3 py-2"><i class="fa-solid fa-arrow-trend-up me-1"></i> +2.5% this month</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5 class="fw-bold mb-3">Quick Actions</h5>
+<div class="row text-center mb-4 g-3">
+    {% set actions = [
+        ('Send Money', 'transfers.transfer', 'fa-paper-plane', 'text-primary', 'bg-primary-light'),
+        ('Receive Money', 'dashboard.index', 'fa-qrcode', 'text-success', 'bg-success'),
+        ('Add Money', 'dashboard.index', 'fa-plus', 'text-info', 'bg-info'),
+        ('Pay Bills', 'payments.bills', 'fa-file-invoice-dollar', 'text-warning', 'bg-warning'),
+        ('Cards', 'cards.list_cards', 'fa-credit-card', 'text-secondary', 'bg-secondary-light'),
+        ('Transactions', 'transactions.index', 'fa-list-ul', 'text-danger', 'bg-danger'),
+        ('Beneficiaries', 'beneficiaries.list_beneficiaries', 'fa-users', 'text-dark', 'bg-dark'),
+        ('Analytics', 'analytics.index', 'fa-chart-pie', 'text-primary', 'bg-primary-light')
+    ] %}
+    {% for name, route, icon, text_color, bg_color in actions %}
+    <div class="col-3 col-md-2 col-lg-1" style="min-width: 100px;">
+        <a href="{{ url_for(route) }}" class="text-decoration-none text-dark d-block p-2 rounded-3 hover-bg-light transition">
+            <div class="d-inline-flex justify-content-center align-items-center rounded-circle {{ bg_color }} bg-opacity-10 mb-2" style="width: 50px; height: 50px;">
+                <i class="fa-solid {{ icon }} fs-5 {{ text_color }}"></i>
+            </div>
+            <div class="small fw-medium">{{ name }}</div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0">Recent Transactions</h5>
+            <a href="{{ url_for('transactions.index') }}" class="text-decoration-none text-secondary small fw-medium">View All</a>
+        </div>
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">Date</th>
+                            <th>Description</th>
+                            <th>Type</th>
+                            <th class="text-end pe-4">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for txn in recent_transactions %}
+                        <tr>
+                            <td class="ps-4 text-muted small">{{ txn.created_at.strftime('%b %d, %Y') }}</td>
+                            <td>
+                                <div class="fw-medium">{{ txn.description or 'N/A' }}</div>
+                                <div class="small text-muted">{{ txn.reference or '' }}</div>
+                            </td>
+                            <td>{{ m.transaction_badge(txn.type) }}</td>
+                            <td class="text-end pe-4">
+                                {% set is_credit = (txn.to_account and txn.to_account.owner_id == current_user.id) %}
+                                {% if is_credit %}
+                                <span class="text-success fw-bold">+₹{{ "{:,.2f}".format(txn.amount) }}</span>
+                                {% else %}
+                                <span class="text-danger fw-bold">-₹{{ "{:,.2f}".format(txn.amount) }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">No recent transactions.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <h5 class="fw-bold mb-3">Spending Summary</h5>
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-body">
+                <canvas id="dashboardChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('dashboardChart');
+    if(ctx) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Shopping', 'Food', 'Bills', 'Transfer'],
+                datasets: [{
+                    data: [45, 25, 20, 10],
+                    backgroundColor: ['#0d3b2e', '#1d785a', '#37d699', '#f0f4f8'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                cutout: '75%',
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

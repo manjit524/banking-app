@@ -1,64 +1,123 @@
-# 🏦 NexusBank
+# NexusBank — Modern Digital Banking & Transaction Platform
 
-A fully functional, professional web-based banking application built with Python and Flask. This system features secure user authentication, transaction authorizations via MPIN, and a modern, glassmorphic UI built with Bootstrap and vanilla CSS.
-
-🌍 **Live Demo:** [Check out the live website here!](https://manjitpal524.pythonanywhere.com/)
+NexusBank is a full-featured, secure, real-time digital banking application built with Flask, SQLAlchemy, lightweight AJAX polling, and Bootstrap 5.
 
 ---
 
-## ✨ Features
+## 🌟 Key Features
 
-- **Secure Authentication:** Users can securely register and log in. Passwords are hashed using `bcrypt`.
-- **MPIN Authorization:** Sensitive actions like viewing balances, transferring funds, and making withdrawals require a 4-6 digit MPIN for an extra layer of security.
-- **Account Dashboard:** Users can view their account ID, account type, and access quick actions.
-- **Transactions:** 
-  - 📥 **Deposit:** Add funds to the account.
-  - 📤 **Withdraw:** Remove funds securely.
-  - 💸 **Transfer:** Send money instantly to other account IDs.
-- **Transaction History:** A detailed, color-coded ledger of all past transactions.
-- **Modern UI/UX:** Responsive design featuring Google Fonts (`Outfit`), FontAwesome icons, and sleek CSS animations.
-
----
-
-## 🛠️ Technology Stack
-
-- **Backend:** Python, Flask
-- **Database:** SQLite (Auto-generating local database) / MySQL compatible
-- **Security:** Bcrypt password hashing
-- **Frontend:** HTML5, CSS3, Bootstrap 5, FontAwesome
-- **Deployment:** PythonAnywhere
+* **Modern Responsive UI**: Built with Bootstrap 5.3, FontAwesome 6.4, and a clean custom emerald green theme. Supports desktop sidebar navigation and mobile bottom navigation.
+* **Double-Entry Ledger Engine**: Financial integrity backed by immutable ledger entries (`LedgerEntry`). Account balances act as a cached state.
+* **Multi-Account Support**: Users can own multiple accounts (Savings, Current, Salary, Demo Wallet).
+* **Atomic Money Transfers**: Concurrent row locking (`with_for_update`) with deadlock-prevention ordering.
+* **Idempotency Protection**: Unique transaction keys prevent double-charge or duplicate transfer bugs.
+* **Real-Time Polling Updates**: Client-side JS polls `/api/notifications/poll` every 3 seconds to update balances, alert popups (toasts), and unread badges dynamically without holding open synchronous server threads.
+* **Virtual Debit Cards**: Issue, freeze/unfreeze, and manage online/international payment permissions on virtual VISA cards.
+* **Bill Payments & Scheduled Transfers**: Pay utility bills (electricity, water, broadband) and set up automated recurring payments.
+* **Analytics & Reporting**: Interactive Chart.js charts showing monthly income vs. expenses, net cash flow, and category spending.
+* **Statement & Receipt Downloads**: PDF and CSV export support.
+* **Zero-Config Database**: SQLite database file (`instance/nexusbank.db`) automatically initializes and seeds on application startup if it does not exist.
 
 ---
 
-## 🚀 How to Run Locally
+## 🛠️ Tech Stack
 
-If you want to run this project on your own machine:
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/manjitpal524/banking-system.git
-   cd banking-system
-   ```
-
-2. **Install the dependencies:**
-   Make sure you have Python installed, then run:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Run the application:**
-   ```bash
-   python app.py
-   ```
-   *Note: The SQLite database (`bank.db`) and all required tables will be generated automatically the very first time the app is run!*
-
-4. **View in browser:**
-   Open `http://127.0.0.1:5000/` in your web browser.
+* **Backend**: Python 3, Flask, Flask-SQLAlchemy, Flask-Login, Flask-WTF, Flask-Limiter, Flask-Mail, Flask-Bcrypt
+* **Frontend**: Jinja2 Templates, Bootstrap 5.3, FontAwesome 6.4, Chart.js, Vanilla JS (Polling client)
+* **Database**: SQLite (SQLAlchemy ORM with WAL logging enabled for concurrency)
+* **Testing**: pytest, pytest-flask
 
 ---
 
-## 🤝 Contributing
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/manjitpal524/banking-system/issues).
+## 🚀 Quick Start
 
-## 📝 License
-This project is open source and available under the [MIT License](LICENSE).
+### 1. Installation
+
+Clone the repository and install dependencies:
+
+```bash
+cd banking-app
+pip install -r requirements.txt
+```
+
+### 2. Run the Application
+
+```bash
+python run.py
+```
+
+*Note: On your very first run, the SQLite database `instance/nexusbank.db` will be created and seeded automatically.*
+
+Open your browser and navigate to `http://127.0.0.1:5000`.
+
+---
+
+## 🔑 Demo Credentials
+
+The database automatically populates the following accounts for testing:
+
+| User | Email | Password | MPIN |
+| --- | --- | --- | --- |
+| **User 1 (Demo)** | `demo@nexusbank.com` | `Demo@1234` | `112233` |
+| **User 2 (Priya)** | `priya@nexusbank.com` | `Demo@1234` | `445566` |
+| **User 3 (Rahul)** | `rahul@nexusbank.com` | `Demo@1234` | `778899` |
+
+---
+
+## 🧪 Running Tests
+
+Execute the automated test suite:
+
+```bash
+python -m pytest tests/
+```
+
+---
+
+## 📁 Project Structure
+
+```
+banking-app/
+├── app.py                 # Application Factory & Auto-DB creation
+├── config.py              # Configuration settings (Dev, Prod, Testing)
+├── extensions.py          # Flask extensions (DB, Login, Bcrypt, Limiter, etc.)
+├── run.py                 # Application entry point
+├── seed.py                # Database seeder code
+├── models/                # SQLAlchemy Models
+│   ├── user.py            # User schema
+│   ├── account.py         # Bank Account model
+│   ├── transaction.py     # Transaction lifecycle
+│   ├── ledger.py          # Double-entry ledger
+│   ├── beneficiary.py     # Beneficiary management
+│   ├── card.py            # Virtual debit cards
+│   ├── bill.py            # Billers & Bills
+│   ├── scheduled_payment.py # Recurring transfers
+│   └── notification.py    # User notifications
+├── services/              # Business Logic & Banking Services
+│   ├── auth_service.py
+│   ├── account_service.py
+│   ├── transaction_service.py
+│   ├── transfer_service.py
+│   ├── beneficiary_service.py
+│   ├── card_service.py
+│   ├── payment_service.py
+│   ├── analytics_service.py
+│   ├── profile_service.py
+│   └── notification_service.py
+├── routes/                # Blueprint Controllers
+│   ├── auth.py
+│   ├── dashboard.py
+│   ├── accounts.py
+│   ├── transactions.py
+│   ├── transfers.py
+│   ├── beneficiaries.py
+│   ├── payments.py
+│   ├── cards.py
+│   ├── analytics.py
+│   ├── profile.py
+│   └── api/
+│       └── notifications_api.py (Stateless JSON APIs)
+├── templates/             # Jinja2 HTML Templates
+├── static/                # CSS, JS & Assets
+└── tests/                 # Unit & Integration Tests
+```

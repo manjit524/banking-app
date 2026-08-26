@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-0">Scheduled Payments</h3>
+        <p class="text-muted mb-0">Automate your regular transfers</p>
+    </div>
+    <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#newScheduleModal">
+        <i class="fa-solid fa-calendar-plus me-2"></i>New Schedule
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-4">Beneficiary</th>
+                    <th>Amount</th>
+                    <th>Frequency</th>
+                    <th>Next Run</th>
+                    <th>Status</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="fw-medium">{{ payment.description or 'Scheduled Transfer' }}</div>
+                        <div class="small text-muted">To Account: {{ payment.to_account.account_number if payment.to_account else 'N/A' }}</div>
+                    </td>
+                    <td class="fw-bold">₹{{ "{:,.2f}".format(payment.amount) }}</td>
+                    <td>{{ payment.frequency }}</td>
+                    <td>{{ payment.start_date.strftime('%b %d, %Y') }}</td>
+                    <td><span class="badge bg-success">{{ payment.status }}</span></td>
+                    <td class="text-end pe-4">
+                        <form action="{{ url_for('payments.cancel_scheduled_payment', id=payment.id) }}" method="POST" class="d-inline needs-confirmation" data-confirm-message="Cancel this scheduled payment?">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">No scheduled payments set.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="newScheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Create Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form action="{{ url_for('payments.create_scheduled_payment') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">From Account</label>
+                        <select name="from_account_id" class="form-select" required>
+                            <option value="">Select source account...</option>
+                            {% for account in accounts %}
+                            <option value="{{ account.id }}">{{ account.account_type.value if account.account_type.value is defined else account.account_type }} - {{ account.account_number }} (₹{{ account.balance }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">To Beneficiary</label>
+                        <select name="to_account_id" class="form-select" required>
+                            <option value="">Select beneficiary...</option>
+                            {% for ben in beneficiaries %}
+                                {% if ben.linked_account_id %}
+                                <option value="{{ ben.linked_account_id }}">{{ ben.name }} ({{ ben.account_number }})</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Amount</label>
+                        <input type="number" step="0.01" name="amount" class="form-control" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description (Optional)</label>
+                        <input type="text" name="description" class="form-control" placeholder="e.g. Rent, Rent Payment">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Frequency</label>
+                            <select name="frequency" class="form-select" required>
+                                <option value="DAILY">Daily</option>
+                                <option value="WEEKLY">Weekly</option>
+                                <option value="MONTHLY" selected>Monthly</option>
+                            </select>
+                        </div>
+                        <div class="col-6 mb-4">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" name="start_date" class="form-control" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-gradient w-100 rounded-3">Set Schedule</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -4,280 +4,137 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}NexusBank{% endblock %}</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        :root {
-            --primary-color: #0d3b2e;
-            --secondary-color: #1d785a;
-            --accent-color: #37d699;
-            --bg-color: #f4f9f7;
-            --card-bg: #ffffff;
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-        }
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Navbar */
-        .navbar {
-            background-color: var(--primary-color) !important;
-            padding: 1rem 2rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .navbar-brand {
-            color: #fff !important;
-            font-weight: 700;
-            font-size: 1.6rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .navbar-brand i {
-            color: var(--accent-color);
-        }
-
-        .nav-link {
-            color: rgba(255, 255, 255, 0.8) !important;
-            font-weight: 500;
-            margin-left: 15px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-link:hover {
-            color: var(--accent-color) !important;
-            transform: translateY(-1px);
-        }
-
-        /* Cards */
-        .card {
-            border: none;
-            border-radius: 16px;
-            background: var(--card-bg);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            overflow: hidden;
-        }
-        
-        .card:hover {
-            box-shadow: 0 15px 35px rgba(13, 59, 46, 0.1);
-            transform: translateY(-2px);
-        }
-
-        /* Forms */
-        .form-control {
-            border-radius: 10px;
-            padding: 12px 16px;
-            border: 2px solid #e2e8f0;
-            background-color: #f8fafc;
-            transition: all 0.3s;
-        }
-        .form-control:focus {
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 0 4px rgba(29, 120, 90, 0.1);
-            background-color: #fff;
-        }
-        .form-label {
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-
-        /* Buttons */
-        .btn-primary {
-            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
-            border: none;
-            border-radius: 10px;
-            padding: 10px 24px;
-            font-weight: 600;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(29, 120, 90, 0.2);
-        }
-        .btn-primary:hover {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-color));
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(29, 120, 90, 0.3);
-            color: white;
-        }
-
-        .btn-success {
-            background-color: var(--accent-color);
-            color: var(--primary-color);
-            border: none;
-            border-radius: 10px;
-            padding: 10px 24px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        .btn-success:hover {
-            background-color: #2bba82;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(55, 214, 153, 0.3);
-        }
-        
-        .btn-secondary {
-            background-color: transparent;
-            color: var(--text-secondary);
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        .btn-secondary:hover {
-            border-color: var(--secondary-color);
-            color: var(--secondary-color);
-            background-color: #f8fafc;
-        }
-
-        /* Utilities */
-        .page-header {
-            color: var(--primary-color);
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            position: relative;
-            display: inline-block;
-        }
-        .page-header::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            bottom: -8px;
-            width: 50px;
-            height: 4px;
-            background-color: var(--accent-color);
-            border-radius: 2px;
-        }
-
-        .fade-in {
-            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Alerts */
-        .alert-custom {
-            border-radius: 10px;
-            border: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-        .alert-danger { background: #fef2f2; color: #991b1b; }
-        .alert-success { background: #f0fdf4; color: #166534; border-left: 4px solid var(--accent-color); }
-        .alert-info { background: #e0f2fe; color: #075985; border-left: 4px solid #38bdf8; }
-        
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .action-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            text-decoration: none;
-            color: var(--text-primary);
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            background: white;
-            transition: all 0.3s ease;
-        }
-        .action-card i {
-            font-size: 2rem;
-            margin-bottom: 10px;
-            color: var(--secondary-color);
-            transition: all 0.3s ease;
-        }
-        .action-card:hover {
-            border-color: var(--accent-color);
-            color: var(--primary-color);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(55, 214, 153, 0.1);
-        }
-        .action-card:hover i {
-            color: var(--accent-color);
-            transform: scale(1.1);
-        }
-    </style>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% block head %}{% endblock %}
 </head>
 <body>
-
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/"><i class="fa-solid fa-leaf"></i> NexusBank</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav">
-                    {% if session.get('user_id') %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="/dashboard"><i class="fa-solid fa-table-columns"></i> Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/transactions"><i class="fa-solid fa-receipt"></i> Transactions</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-danger" href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="/login"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/register"><i class="fa-solid fa-user-plus"></i> Register</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
+    {% if current_user.is_authenticated and not no_sidebar %}
+    <!-- Sidebar for Desktop -->
+    <aside class="sidebar d-none d-md-flex flex-column">
+        <div class="sidebar-brand text-center py-4">
+            <i class="fa-solid fa-leaf text-accent fs-3"></i>
+            <span class="brand-text fs-4 fw-bold text-white ms-2">NexusBank</span>
         </div>
+        <nav class="sidebar-nav flex-grow-1">
+            <a href="{{ url_for('dashboard.index') }}" class="nav-link"><i class="fa-solid fa-house"></i> Dashboard</a>
+            <a href="{{ url_for('accounts.index') }}" class="nav-link"><i class="fa-solid fa-wallet"></i> Accounts</a>
+            <a href="{{ url_for('transactions.index') }}" class="nav-link"><i class="fa-solid fa-list-ul"></i> Transactions</a>
+            <a href="{{ url_for('transfers.transfer') }}" class="nav-link"><i class="fa-solid fa-money-bill-transfer"></i> Transfers</a>
+            <a href="{{ url_for('beneficiaries.list_beneficiaries') }}" class="nav-link"><i class="fa-solid fa-users"></i> Beneficiaries</a>
+            <a href="{{ url_for('cards.list_cards') }}" class="nav-link"><i class="fa-solid fa-credit-card"></i> Cards</a>
+            
+            <!-- Active Module Links -->
+            <a href="{{ url_for('payments.bills') }}" class="nav-link"><i class="fa-solid fa-file-invoice-dollar"></i> Bills</a>
+            <a href="{{ url_for('payments.scheduled') }}" class="nav-link"><i class="fa-solid fa-calendar-check"></i> Scheduled</a>
+            <a href="{{ url_for('analytics.index') }}" class="nav-link"><i class="fa-solid fa-chart-pie"></i> Analytics</a>
+            <a href="{{ url_for('notifications.index') }}" class="nav-link position-relative">
+                <i class="fa-solid fa-bell"></i> Notifications
+                {% if current_user.is_authenticated and current_user.unread_notification_count|default(0) > 0 %}
+                <span class="badge bg-danger rounded-pill position-absolute top-50 end-0 translate-middle-y me-3 unread-badge">
+                    {{ current_user.unread_notification_count }}
+                </span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('profile.index') }}" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
+        </nav>
+        <div class="sidebar-footer p-3">
+            <a href="{{ url_for('auth.logout') }}" class="nav-link text-danger"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        </div>
+    </aside>
+
+    <!-- Bottom Nav for Mobile -->
+    <nav class="mobile-nav d-md-none">
+        <a href="{{ url_for('dashboard.index') }}" class="mobile-link"><i class="fa-solid fa-house"></i><span>Home</span></a>
+        <a href="{{ url_for('transfers.transfer') }}" class="mobile-link"><i class="fa-solid fa-money-bill-transfer"></i><span>Transfer</span></a>
+        <a href="{{ url_for('cards.list_cards') }}" class="mobile-link"><i class="fa-solid fa-credit-card"></i><span>Cards</span></a>
+        <a href="#" class="mobile-link"><i class="fa-solid fa-user"></i><span>Profile</span></a>
     </nav>
+    {% endif %}
 
-    <!-- Main Content -->
-    <div class="container mt-5 mb-5 flex-grow-1 fade-in">
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category }} alert-custom alert-dismissible fade show">
-                  {{ message }}
-                  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
+    <!-- Main Content Wrapper -->
+    <main class="main-content {% if not current_user.is_authenticated or no_sidebar %}auth-layout{% endif %}">
+        {% if current_user.is_authenticated and not no_sidebar %}
+        <!-- Top Navbar -->
+        <header class="top-navbar d-flex justify-content-between align-items-center py-3 px-4 bg-white shadow-sm">
+            <div class="d-flex align-items-center d-md-none">
+                <i class="fa-solid fa-leaf text-accent fs-4"></i>
+                <span class="brand-text fs-5 fw-bold ms-2 text-primary">NexusBank</span>
+            </div>
+            <div class="d-none d-md-block">
+                <h5 class="mb-0 text-muted" id="greeting-text">Welcome back!</h5>
+            </div>
+            
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge rounded-pill bg-success px-3 py-2 demo-badge"><i class="fa-solid fa-vial"></i> DEMO</span>
+                
+                <div class="dropdown">
+                    <a href="#" class="text-dark position-relative" data-bs-toggle="dropdown">
+                        <i class="fa-solid fa-bell fs-5"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger unread-badge" style="font-size: 0.6rem;">3</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <li><h6 class="dropdown-header">Notifications</h6></li>
+                        <li><a class="dropdown-item" href="#">View All</a></li>
+                    </ul>
+                </div>
+                
+                <div class="dropdown">
+                    <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
+                        <img src="{{ url_for('static', filename='img/avatar.png') }}" onerror="this.src='https://ui-avatars.com/api/?name=' + encodeURIComponent('{{ current_user.name }}') + '&background=0d3b2e&color=fff'" alt="User" class="rounded-circle me-2" width="32" height="32">
+                        <span class="d-none d-md-inline fw-medium">{{ current_user.name }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-user-gear me-2"></i>Profile</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+        {% endif %}
 
-        {% block content %}{% endblock %}
-    </div>
+        <div class="container-fluid py-4 px-md-4 fade-in">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
-    <!-- Footer -->
-    <footer class="mt-auto py-4 text-center text-muted" style="background: white; border-top: 1px solid #e2e8f0;">
-        <div class="container">
-            <small>&copy; 2026 NexusBank. Modern & Secure Financial Solutions.</small>
+            {% block content %}{% endblock %}
         </div>
-    </footer>
+        
+        <footer class="text-center py-4 text-muted small">
+            <p class="mb-0">&copy; 2026 NexusBank. DEMO/SANDBOX Mode.</p>
+        </footer>
+    </main>
 
-    <!-- Bootstrap JS -->
+    <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- User Context for JS -->
+    <script>
+        const NEXUS_USER_ID = '{{ current_user.id if current_user.is_authenticated else "" }}';
+        const IS_DEMO = true;
+    </script>
+    
+    <!-- Custom Scripts -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/realtime.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

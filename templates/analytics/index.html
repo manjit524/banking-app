@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-0">Analytics</h3>
+        <p class="text-muted mb-0">Financial insights and spending habits</p>
+    </div>
+    <select class="form-select w-auto rounded-pill px-4">
+        <option>This Month</option>
+        <option>Last Month</option>
+        <option>Last 6 Months</option>
+    </select>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 bg-success bg-opacity-10 text-success">
+            <div class="card-body p-4 text-center">
+                <i class="fa-solid fa-arrow-down fs-3 mb-2"></i>
+                <div class="small fw-medium text-uppercase">Total Income</div>
+                <h3 class="fw-bold mb-0">₹{{ "{:,.2f}".format(data.total_income) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 bg-danger bg-opacity-10 text-danger">
+            <div class="card-body p-4 text-center">
+                <i class="fa-solid fa-arrow-up fs-3 mb-2"></i>
+                <div class="small fw-medium text-uppercase">Total Expenses</div>
+                <h3 class="fw-bold mb-0">₹{{ "{:,.2f}".format(data.total_expenses) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 bg-primary-light text-primary">
+            <div class="card-body p-4 text-center">
+                <i class="fa-solid fa-scale-balanced fs-3 mb-2"></i>
+                <div class="small fw-medium text-uppercase">Net Flow</div>
+                <h3 class="fw-bold mb-0">₹{{ "{:,.2f}".format(data.net_flow) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 bg-info bg-opacity-10 text-info">
+            <div class="card-body p-4 text-center">
+                <i class="fa-solid fa-piggy-bank fs-3 mb-2"></i>
+                <div class="small fw-medium text-uppercase">Savings Rate</div>
+                <h3 class="fw-bold mb-0">{{ data.savings_rate }}%</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-4">Income vs Expenses (6 Months)</h5>
+                <canvas id="lineChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-4">Spending by Category</h5>
+                <canvas id="donutChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}
